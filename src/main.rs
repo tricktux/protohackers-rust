@@ -1,4 +1,5 @@
 // Looking at: https://doc.rust-lang.org/std/net/struct.TcpListener.html
+use std::thread;
 use std::io;
 use std::io::{Read, Result, Write};
 use std::net::{TcpListener, TcpStream};
@@ -8,7 +9,7 @@ fn handle_client(mut stream: TcpStream) -> Result<()> {
     loop {
         let n = match stream.read(&mut data) {
             Ok(0) => {
-                print!("Gracefully closing the connection");
+                println!("Gracefully closing the connection");
                 break;
             }
             Ok(n) => n,
@@ -33,7 +34,13 @@ fn main() -> Result<()> {
         match stream {
             Ok(stream) => {
                 println!("New connection: {}", stream.peer_addr()?);
-                handle_client(stream)?;
+                // handle_client(stream)?;
+                thread::spawn(move || {
+                    // Thread owns stream - it closes when thread exits
+                    if let Err(e) = handle_client(stream) {
+                        eprintln!("Error: {}", e);
+                    }
+                });
             }
             Err(e) => {
                 println!("Error: {}", e);
